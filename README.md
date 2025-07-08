@@ -2,7 +2,7 @@
 
 ## Español
 
-Ejemplo de un agente básico que utiliza Embabel para interactuar con un LLM (Large Language Model) y realizar tareas de resumen de sitios web.
+Ejemplo de un agente básico que utiliza [Embabel](https://github.com/embabel/embabel-agent) para interactuar con un LLM (Large Language Model) y realizar tareas de resumen de sitios web.
 
 Este project usa
 - Java 24
@@ -41,7 +41,7 @@ Puedes ver que otras opciones hay disponibles ejecutando el comando `help x` en 
 
 ## English
 
-Example of a basic agent that uses Embabel to interact with a Large Language Model (LLM) and perform web page summarization tasks.
+Example of a basic agent that uses [Embabel](https://github.com/embabel/embabel-agent) to interact with a Large Language Model (LLM) and perform web page summarization tasks.
 
 This project uses
 - Java 24
