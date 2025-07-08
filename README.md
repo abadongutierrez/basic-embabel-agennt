@@ -1,4 +1,4 @@
-# Agente Basico con Embabel (Basic Embabel Agent)
+# Agente Simple con Embabel (Basic Embabel Agent)
 
 ## Español
 
