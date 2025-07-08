@@ -14,9 +14,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 )
 @EnableAgentShell // Enable the agent shell
 public class BasicEmbabelAgentApplication {
-
 	public static void main(String[] args) {
 		SpringApplication.run(BasicEmbabelAgentApplication.class, args);
 	}
-
 }

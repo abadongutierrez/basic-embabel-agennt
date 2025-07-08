@@ -9,6 +9,7 @@ Este project usa
 - Spring Boot 3.5.3
 - Embabel 0.1.0-SNAPSHOT
 - JSoup 1.21.1
+- Ollama y los modelos: llama3.2 y all-minilm
 
 ### Ejecutar el proyecto
 
@@ -48,6 +49,7 @@ This project uses
 - Spring Boot 3.5.3
 - Embabel 0.1.0-SNAPSHOT
 - JSoup 1.21.1
+- Ollama and the models: llama3.2 and all-minilm
 
 ### Running the project
 
