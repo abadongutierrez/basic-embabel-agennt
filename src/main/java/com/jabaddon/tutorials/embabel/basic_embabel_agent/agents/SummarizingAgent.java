@@ -6,6 +6,7 @@ import com.embabel.agent.api.annotation.Agent;
 import com.embabel.agent.api.common.OperationContext;
 import com.embabel.agent.api.common.PromptRunner;
 import com.embabel.agent.domain.io.UserInput;
+import com.embabel.common.ai.model.BuildableLlmOptions;
 import com.embabel.common.ai.model.LlmOptions;
 import com.embabel.common.ai.model.ModelSelectionCriteria;
 import com.jabaddon.tutorials.embabel.basic_embabel_agent.domain.SummarizedPage;
@@ -38,7 +39,7 @@ public class SummarizingAgent {
 
     @Action
     public WebPageLinks extractWebPagesLinks(UserInput userInput) {
-        return PromptRunner.usingLlm().createObjectIfPossible(String.format("""
+        String prompt = String.format("""
                 Extracts the urls from the provided user input.
                 
                 <user-input>
@@ -46,7 +47,8 @@ public class SummarizingAgent {
                 </user-input>
                 
                 Extract only the links mentioned in the user input, dont add any other links.
-                """.trim(), userInput.getContent()), WebPageLinks.class);
+                """.trim(), userInput.getContent());
+        return PromptRunner.usingLlm().createObjectIfPossible(prompt, WebPageLinks.class);
     }
 
     @Action
@@ -61,22 +63,25 @@ public class SummarizingAgent {
     private SummarizedPages getSummarizedPagesUsingOpenAI(WebPageLinks webPageLinks) {
         // Llama3.2 is not a great model, if you were using OpenAI you could use the following code instead
         // and summarize the content of each web page using the jsoup tool in a single prompt and request
-        return PromptRunner.usingLlm(LlmOptions.fromCriteria(
+        String prompt = String.format("""
+                Summarize the content of each web page.
+                
+                <links>
+                %s
+                </links>
+                
+                For each link, use the jsoup tool to get the text content and then summarize the content using maximum of %d words.
+                Return the summaries as a list of summarized pages with their URLs.
+                DO NOT include any additional information or links, just the summaries.
+                DO NOT ask the user for any additional information.
+                """.trim(), "- " + String.join("\n- ", webPageLinks.links()), maxWordsInSummary);
+        BuildableLlmOptions llmOptions = LlmOptions.fromCriteria(
                 ModelSelectionCriteria.byName("gpt-4.1-mini")
-        )).withToolObject(jSoupTool).createObjectIfPossible(
-                String.format("""
-                        Summarize the content of each web page.
-                        
-                        <links>
-                        %s
-                        </links>
-                        
-                        For each link, use the jsoup tool to get the text content and then summarize the content using maximum of %d words.
-                        Return the summaries as a list of summarized pages with their URLs.
-                        DO NOT include any additional information or links, just the summaries.
-                        DO NOT ask the user for any additional information.
-                        """.trim(), "- " + String.join("\n- ", webPageLinks.links()), maxWordsInSummary),
-                SummarizedPages.class);
+        );
+        return PromptRunner
+                .usingLlm(llmOptions)
+                .withToolObject(jSoupTool)
+                .createObjectIfPossible(prompt, SummarizedPages.class);
     }
 
     @NotNull
@@ -87,12 +92,18 @@ public class SummarizingAgent {
             logger.info("Trying to summarize web pages using the jsoup tool");
             return new SummarizedPages(
                     webPageLinks.links().stream()
-                            .map(link -> operationContext.promptRunner().withToolObject(jSoupTool).createObjectIfPossible(String.format("""
-                                    Summarize the content of the web page: %s.
-                                    You MUST use the jsoup tool to get the text content of the page.
-                                    DO NOT provide information from your own knowledge or any other sources USE THE PROVIDED TOOL.
-                                    Use a maximum of %d words for the summary.
-                                    """.trim(), link, maxWordsInSummary), SummarizedPage.class))
+                            .map(link -> {
+                                String prompt = String.format("""
+                                        Summarize the content of the web page: %s.
+                                        You MUST use the jsoup tool to get the text content of the page.
+                                        DO NOT provide information from your own knowledge or any other sources USE THE PROVIDED TOOL.
+                                        Use a maximum of %d words for the summary.
+                                        """.trim(), link, maxWordsInSummary);
+                                return operationContext
+                                        .promptRunner()
+                                        .withToolObject(jSoupTool)
+                                        .createObjectIfPossible(prompt, SummarizedPage.class);
+                            })
                             .toList()
             );
         } catch (Exception ex) {
@@ -106,13 +117,16 @@ public class SummarizingAgent {
                                     // calling the tool directly to get the page text
                                     String pageText = jSoupTool.getPageText(link);
                                     // ask the model just to summarize the text and return text as a result
-                                    String summarizedPageText = operationContext.promptRunner().generateText(String.format("""
+                                    String prompt = String.format("""
                                             Summarize the following text:
                                             
                                             <text>%s</text>
                                             
                                             Use a maximum of %d words. 
-                                            """.trim(), pageText, maxWordsInSummary));
+                                            """.trim(), pageText, maxWordsInSummary);
+                                    String summarizedPageText = operationContext
+                                            .promptRunner()
+                                            .generateText(prompt);
                                     return new SummarizedPage(link, summarizedPageText);
                                 } catch (IOException e) {
                                     return new SummarizedPage(link, "No content available due to: " + e.getMessage());
